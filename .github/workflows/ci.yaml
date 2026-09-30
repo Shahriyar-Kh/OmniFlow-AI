@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.11-alpine3.24
+        env:
+          POSTGRES_USER: tbos_ci
+          POSTGRES_PASSWORD: tbos_ci_password
+          POSTGRES_DB: tbos_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tbos_ci -d tbos_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://tbos_ci:tbos_ci_password@127.0.0.1:5432/tbos_ci
+      RUN_DB_TESTS: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy apps/renderer/src
+      - run: alembic -c database/alembic.ini upgrade head
+      - run: python -m database.seed.seed
+      - run: pytest
+

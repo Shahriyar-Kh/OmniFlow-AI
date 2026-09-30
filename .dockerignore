@@ -1,0 +1,15 @@
+.git
+.env
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+backups
+n8n/backups
+storage/*
+!storage/**/.gitkeep
+

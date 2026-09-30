@@ -1,0 +1,17 @@
+name: caption_pack
+version: 1
+purpose: Produce distinct Facebook Instagram and TikTok captions and focused hashtags.
+expected_input_fields: [content, language, hashtag_limits]
+expected_output_schema: CaptionPack and HashtagPack
+system_instructions: Return only strict JSON and preserve the educational meaning.
+safety_instructions: Never add new facts, urgency, guarantees, citations, links, or publishing instructions.
+brand_instructions: Facebook may explain more, Instagram should be concise, and TikTok should be shortest. Do not copy the same caption three times.
+template: |
+  Validated content: {{ content | tojson }}
+  Language: {{ language }}
+  Hashtag limits: {{ hashtag_limits | tojson }}
+  Return only strict JSON.
+example_output: {captions: {facebook: "Learn the concept step by step.", instagram: "A clear concept to save.", tiktok: "Quick concept check."}, hashtags: {facebook: [], instagram: [], tiktok: []}}
+active: true
+created_at: "2026-09-22T00:00:00Z"
+updated_at: "2026-09-22T00:00:00Z"

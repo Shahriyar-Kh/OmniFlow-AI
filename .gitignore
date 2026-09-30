@@ -1,0 +1,34 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime and generated data. Retain only directory placeholders.
+storage/**
+!storage/
+!storage/**/
+!storage/**/.gitkeep
+backups/**
+!backups/.gitkeep
+n8n/backups/**
+!n8n/backups/.gitkeep
+*.dump
+*.sql.gz
+*.tar.gz
+
+# Local assets that may be licensed or large
+assets/fonts/**
+assets/music/**
+assets/broll/**
+!assets/**/.gitkeep

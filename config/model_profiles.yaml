@@ -1,0 +1,20 @@
+schema_version: 1
+profiles:
+  low_memory:
+    model: qwen3:4b
+    recommended_minimum_ram_gib: 8
+    context_length: 4096
+    max_concurrency: 1
+    notes: Selected for the detected 7.8 GiB Windows host. Model download is substantial and requires approval.
+  standard:
+    model: qwen3:8b
+    recommended_minimum_ram_gib: 16
+    context_length: 8192
+    max_concurrency: 1
+    notes: Preferred when at least 16 GiB RAM is available.
+  higher_quality:
+    model: null
+    recommended_minimum_ram_gib: 32
+    context_length: 8192
+    max_concurrency: 1
+    notes: Intentionally unset; select and download only after explicit review.

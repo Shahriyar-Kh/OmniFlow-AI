@@ -1,0 +1,12 @@
+schema_version: 1
+timezone: Asia/Karachi
+publishing_enabled: false
+weekly_plan:
+  - {day: Monday, time: "18:00", content_type: poster, slot: poster-1}
+  - {day: Tuesday, time: "19:00", content_type: reel, slot: reel-1}
+  - {day: Wednesday, time: "18:00", content_type: poster, slot: poster-2}
+  - {day: Thursday, time: "19:00", content_type: reel, slot: reel-2}
+  - {day: Friday, time: "18:00", content_type: poster, slot: poster-3}
+  - {day: Saturday, time: "19:00", content_type: reel, slot: reel-3}
+  - {day: Sunday, time: "18:00", content_type: poster, slot: poster-4}
+

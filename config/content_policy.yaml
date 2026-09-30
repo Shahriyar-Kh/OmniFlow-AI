@@ -1,0 +1,18 @@
+schema_version: 1
+rules:
+  fabricated_statistics: prohibited
+  guaranteed_income_claims: prohibited
+  copied_articles_or_course_material: prohibited
+  unsafe_or_illegal_instructions: prohibited
+  medical_legal_financial_claims: expert_review_required
+  numerical_or_time_sensitive_claims: source_verification_required
+  political_religious_sensitive_controversial_content: manual_review_required
+  publishing: manual_review_required
+comment_categories_never_auto_answer:
+  - threats or self-harm
+  - medical, legal, or financial advice
+  - political or religious disputes
+  - harassment, hate, or explicit content
+  - requests for personal data or account access
+  - allegations requiring investigation
+

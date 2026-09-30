@@ -1,0 +1,52 @@
+schema_version: 1
+brand:
+  name: TechBuilt Open School
+  slug: techbuilt-open-school
+  description: Free, practical technology education for learners building real-world skills.
+  audience:
+    - Pakistani students and early-career learners
+    - Beginners learning practical technology skills
+  voice_and_tone:
+    - clear
+    - encouraging
+    - practical
+    - honest
+  default_language_style: Roman Urdu with clear, simple English technical terms.
+  content_pillars:
+    - AI Tools and Practical AI
+    - Python and Automation
+    - Computer Science Concepts
+    - Career and Portfolio Projects
+    - Cyber Safety and Digital Literacy
+  weekly_targets:
+    poster: 4
+    reel: 3
+  sizes:
+    poster:
+      width: 1080
+      height: 1350
+    reel:
+      width: 1080
+      height: 1920
+  palette:
+    note: EDITABLE PLACEHOLDERS - replace after official brand approval.
+    primary: "#155EEF"
+    secondary: "#0E9384"
+    accent: "#F79009"
+    background: "#F8FAFC"
+    text: "#101828"
+  typography:
+    heading: EDITABLE_PLACEHOLDER_SANS
+    body: EDITABLE_PLACEHOLDER_SANS
+  cta_examples:
+    - Save this for your next practice session.
+    - Follow TechBuilt Open School for practical tech learning.
+    - Try this today and share what you built.
+  prohibited_claims:
+    - Guaranteed income or employment
+    - Fabricated outcomes, statistics, testimonials, or credentials
+    - Unverified safety, medical, legal, or financial claims
+  human_review:
+    required_before_publish: true
+    approval_must_reference_exact_version: true
+

@@ -1,0 +1,17 @@
+name: quality_repair
+version: 1
+purpose: Repair only schema or deterministic QA failures in generated JSON.
+expected_input_fields: [failed_json, validation_errors, output_schema]
+expected_output_schema: Same schema as the failed generation request
+system_instructions: Repair only invalid fields and return one strict JSON object.
+safety_instructions: Never hide, remove, reinterpret, or weaken a safety failure. Do not invent missing facts.
+brand_instructions: Preserve valid brand voice and educational meaning while making the smallest correction.
+template: |
+  Failed JSON: {{ failed_json | tojson }}
+  Validation errors: {{ validation_errors | tojson }}
+  Output schema: {{ output_schema | tojson }}
+  Return corrected strict JSON only.
+example_output: null
+active: true
+created_at: "2026-09-22T00:00:00Z"
+updated_at: "2026-09-22T00:00:00Z"

@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tbos-automation"
+version = "0.2.0"
+description = "TechBuilt Open School local content automation foundation"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "alembic==1.16.5",
+  "fastapi==0.116.1",
+  "google-genai==1.3.0",
+  "httpx==0.28.1",
+  "Jinja2==3.1.6",
+  "psycopg[binary]==3.2.10",
+  "pydantic-settings==2.10.1",
+  "PyYAML==6.0.2",
+  "sqlalchemy==2.0.43",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy==1.17.1",
+  "pytest==8.4.2",
+  "pytest-asyncio==1.1.0",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.11",
+  "types-PyYAML==6.0.12.20250822",
+]
+
+[tool.setuptools.packages.find]
+where = ["apps/renderer/src"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --cov=tbos_renderer --cov-report=term-missing"
+testpaths = ["apps/renderer/tests", "tests"]
+markers = [
+  "integration: requires the Compose PostgreSQL service",
+  "live_ollama: requires native Ollama and the selected local model",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+extend-exclude = ["database/migrations/versions"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "apps/renderer/src"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["database/migrations"]
+
+[[tool.mypy.overrides]]
+module = ["google", "google.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["tbos_renderer"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 90

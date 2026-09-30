@@ -1,0 +1,153 @@
+{
+  "name": "TBOS - Telegram Approval Webhook Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-callback",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "e3f30c94-960b-6c2f-b495-f7f334560001",
+      "name": "Webhook - Telegram Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $json.body || {};\nconst callbackQuery = payload.callback_query || payload;\nconst data = callbackQuery.data || '';\nconst parts = data.split(':');\n\nconst action = parts[0] || 'unknown'; // 'approve' or 'reject'\nconst contentId = parts[1] || '';\nconst versionId = parts[2] || '';\n\nconst queryId = callbackQuery.id || '';\nconst fromUser = callbackQuery.from || {};\nconst reviewerName = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || 'Admin');\nconst reviewerRef = `telegram:${fromUser.id || 'unknown'} (${reviewerName})`;\n\nconst message = callbackQuery.message || {};\nconst messageId = message.message_id || null;\nconst chatId = message.chat ? message.chat.id : null;\nconst existingCaption = message.caption || '';\n\nconst isApproved = action === 'approve';\nconst decision = isApproved ? 'approved' : 'changes_requested';\nconst notes = isApproved ? 'Approved via Telegram Inline Button' : 'Changes requested via Telegram Inline Button';\n\nreturn [{\n  json: {\n    is_valid: Boolean(contentId && (action === 'approve' || action === 'reject')),\n    action: action,\n    decision: decision,\n    content_id: contentId,\n    version_id: versionId,\n    callback_query_id: queryId,\n    reviewer_reference: reviewerRef,\n    notes: notes,\n    message_id: messageId,\n    chat_id: chatId,\n    existing_caption: existingCaption\n  }\n}];"
+      },
+      "id": "e3f30c94-960b-6c2f-b495-f7f334560002",
+      "name": "Parse Telegram Callback Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"callback_query_id\": \"{{ $json.callback_query_id }}\",\n  \"text\": \"{{ $json.decision === 'approved' ? 'Decision Recorded: APPROVED ✅' : 'Decision Recorded: CHANGES REQUESTED ❌' }}\",\n  \"show_alert\": false\n}",
+        "options": {}
+      },
+      "id": "e3f30c94-960b-6c2f-b495-f7f334560003",
+      "name": "Answer Telegram Callback Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://renderer-api:8080/api/v1/content/{{ $('Parse Telegram Callback Query').item.json.content_id }}/approval",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TBOS-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"decision\": \"{{ $('Parse Telegram Callback Query').item.json.decision }}\",\n  \"reviewer_reference\": \"{{ $('Parse Telegram Callback Query').item.json.reviewer_reference }}\",\n  \"notes\": \"{{ $('Parse Telegram Callback Query').item.json.notes }}\"\n}",
+        "options": {}
+      },
+      "id": "e3f30c94-960b-6c2f-b495-f7f334560004",
+      "name": "Record Approval in Backend API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/editMessageCaption",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $('Parse Telegram Callback Query').item.json.chat_id }},\n  \"message_id\": {{ $('Parse Telegram Callback Query').item.json.message_id }},\n  \"caption\": \"{{ $('Parse Telegram Callback Query').item.json.decision === 'approved' ? '✅ APPROVED by ' + $('Parse Telegram Callback Query').item.json.reviewer_reference + ' — Publish jobs provisioned in database.' : '❌ CHANGES REQUESTED by ' + $('Parse Telegram Callback Query').item.json.reviewer_reference + ' — Status updated.' }}\\n\\n\" + {{ JSON.stringify($('Parse Telegram Callback Query').item.json.existing_caption) }},\n  \"reply_markup\": {\n    \"inline_keyboard\": []\n  }\n}",
+        "options": {}
+      },
+      "id": "e3f30c94-960b-6c2f-b495-f7f334560005",
+      "name": "Update Telegram Message Caption",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Telegram Callback": {
+      "main": [
+        [
+          {
+            "node": "Parse Telegram Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Telegram Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Answer Telegram Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer Telegram Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Record Approval in Backend API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Approval in Backend API": {
+      "main": [
+        [
+          {
+            "node": "Update Telegram Message Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

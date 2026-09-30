@@ -1,0 +1,299 @@
+{
+  "name": "TBOS - Telegram Approval Dispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dispatch-approval",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450001",
+      "name": "Webhook - Dispatch Approval",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://renderer-api:8080/api/v1/content/{{ $json.body.content_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TBOS-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450002",
+      "name": "Fetch Content Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://renderer-api:8080/api/v1/content/{{ $('Webhook - Dispatch Approval').item.json.body.content_id }}/assets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TBOS-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450003",
+      "name": "Fetch Rendered Assets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $('Fetch Content Item').first().json;\nconst assets = $('Fetch Rendered Assets').first().json;\nconst contentId = $('Webhook - Dispatch Approval').first().json.body.content_id;\nconst versionId = content.id;\nconst versionNum = content.version_number;\nconst scriptContent = content.script_data?.content || {};\nconst contentType = scriptContent.metadata?.content_type || 'poster';\nconst isPoster = contentType === 'poster';\n\nconst assetList = Array.isArray(assets) ? assets : [assets];\nconst primaryAsset = assetList.find(a => isPoster ? a.asset_type === 'poster' : a.asset_type === 'reel') || assetList[0];\n\nconst hook = content.hook || scriptContent.headline || content.title;\nconst captions = scriptContent.captions || {};\nconst hashtags = (content.hashtags || []).map(t => t.startsWith('#') ? t : '#' + t).join(' ');\n\nconst captionText = `🎓 *TechBuilt Open School — Editorial Approval Request*\\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n📌 *Topic:* ${content.title}\\n🏷️ *Format:* ${isPoster ? 'Poster (1080x1350)' : 'Reel Short (9:16)'} | *Version:* v${versionNum}\\n🪝 *Hook:* ${hook}\\n\\n📝 *Captions:*\\n• *Instagram:* ${captions.instagram || 'See visual'}\\n• *Facebook:* ${captions.facebook || 'See visual'}\\n• *TikTok:* ${captions.tiktok || 'See visual'}\\n\\n🏷️ *Hashtags:*\\n${hashtags || '#TechBuiltOpenSchool #LearnToCode #Python'}\\n\\n🆔 *Content ID:* \\`${contentId}\\`\\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n⚠️ *Human approval required before public publishing.*`;\n\nreturn [{\n  json: {\n    content_id: contentId,\n    version_id: versionId,\n    version_number: versionNum,\n    is_poster: isPoster,\n    asset_id: primaryAsset ? primaryAsset.id : null,\n    media_download_url: primaryAsset ? `http://renderer-api:8080/api/v1/assets/${primaryAsset.id}/download` : null,\n    caption: captionText\n  }\n}];"
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450004",
+      "name": "Format Telegram Message & Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.media_download_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450005",
+      "name": "Download Media Binary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $('Format Telegram Message & Payload').item.json.is_poster }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450006",
+      "name": "Check Content Type (Poster vs Reel)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendPhoto",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_APPROVAL_CHAT_ID }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('Format Telegram Message & Payload').item.json.caption }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "photo",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "reply_markup",
+              "value": "={\\n  \"inline_keyboard\": [\\n    [\\n      {\\n        \"text\": \"✅ Approve\",\\n        \"callback_data\": \"approve:{{ $('Format Telegram Message & Payload').item.json.content_id }}:{{ $('Format Telegram Message & Payload').item.json.version_id }}\"\\n      },\\n      {\\n        \"text\": \"❌ Reject / Edit\",\\n        \"callback_data\": \"reject:{{ $('Format Telegram Message & Payload').item.json.content_id }}:{{ $('Format Telegram Message & Payload').item.json.version_id }}\"\\n      }\\n    ]\\n  ]\\n}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450007",
+      "name": "Telegram - Send Poster (Photo)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendVideo",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chat_id",
+              "value": "={{ $env.TELEGRAM_APPROVAL_CHAT_ID }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $('Format Telegram Message & Payload').item.json.caption }}"
+            },
+            {
+              "name": "parse_mode",
+              "value": "Markdown"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "reply_markup",
+              "value": "={\\n  \"inline_keyboard\": [\\n    [\\n      {\\n        \"text\": \"✅ Approve\",\\n        \"callback_data\": \"approve:{{ $('Format Telegram Message & Payload').item.json.content_id }}:{{ $('Format Telegram Message & Payload').item.json.version_id }}\"\\n      },\\n      {\\n        \"text\": \"❌ Reject / Edit\",\\n        \"callback_data\": \"reject:{{ $('Format Telegram Message & Payload').item.json.content_id }}:{{ $('Format Telegram Message & Payload').item.json.version_id }}\"\\n      }\\n    ]\\n  ]\\n}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450008",
+      "name": "Telegram - Send Reel (Video)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Dispatch Approval": {
+      "main": [
+        [
+          {
+            "node": "Fetch Content Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Content Item": {
+      "main": [
+        [
+          {
+            "node": "Fetch Rendered Assets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Rendered Assets": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message & Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message & Payload": {
+      "main": [
+        [
+          {
+            "node": "Download Media Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Media Binary": {
+      "main": [
+        [
+          {
+            "node": "Check Content Type (Poster vs Reel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Content Type (Poster vs Reel)": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Send Poster (Photo)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram - Send Reel (Video)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
