@@ -49,8 +49,8 @@ class ContentRepository:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
 
-    def session(self) -> Session:
-        return Session(self.engine)
+    def session(self, expire_on_commit: bool = False) -> Session:
+        return Session(self.engine, expire_on_commit=expire_on_commit)
 
     @staticmethod
     def _parse_content(version: ContentVersion) -> PosterContent | ReelContent:

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
+import logging
 from pathlib import Path
 from uuid import UUID
 
@@ -14,8 +15,8 @@ from tbos_renderer.models import (
     ContentItem,
     ContentStatus,
     ContentVersion,
-    PublishJob,
     PublishedPost,
+    PublishJob,
 )
 from tbos_renderer.publishing.meta import MetaGraphPublisher
 from tbos_renderer.publishing.schemas import (
@@ -83,7 +84,8 @@ class PublishingService:
             item.status = ContentStatus.PUBLISHING.value
             session.flush()
 
-        # Execute publishing outside transaction to prevent holding database locks during network I/O
+        # Execute publishing outside transaction to prevent holding database locks
+        # during network I/O
         try:
             publish_result = await self._dispatch_platform(job, version, item, assets)
         except Exception as exc:
@@ -134,7 +136,7 @@ class PublishingService:
         job: PublishJob,
         version: ContentVersion,
         item: ContentItem,
-        assets: list[Asset],
+        assets: Sequence[Asset],
     ) -> PublishResult:
         is_reel = item.content_type == "reel"
         target_type = "reel" if is_reel else "poster"
@@ -178,7 +180,7 @@ class PublishingService:
             )
             return PublishResult(
                 platform="tiktok_handoff",
-                external_post_id=f"handoff:{version.id}",
+                external_post_id=f"handoff:{job.id}",
                 permalink=handoff.bundle_dir,
                 published_at=datetime.now(UTC),
                 metadata={"bundle_dir": handoff.bundle_dir, "caption": handoff.ready_caption},

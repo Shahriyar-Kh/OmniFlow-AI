@@ -96,9 +96,7 @@ class MetaGraphPublisher:
                     err = payload.get("error", {})
                     err_msg = err.get("message", response.text[:300])
                     err_code = err.get("code")
-                    raise MetaPublishingError(
-                        f"Meta Graph API error (code {err_code}): {err_msg}"
-                    )
+                    raise MetaPublishingError(f"Meta Graph API error (code {err_code}): {err_msg}")
 
                 return payload  # type: ignore[no-any-return]
 

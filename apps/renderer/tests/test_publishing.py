@@ -26,7 +26,14 @@ from tbos_renderer.content_engine.schemas import (
     ReelContent,
     ReelScene,
 )
-from tbos_renderer.models import Asset, ContentItem, ContentStatus, ContentVersion, PublishJob, PublishedPost
+from tbos_renderer.models import (
+    Asset,
+    ContentItem,
+    ContentStatus,
+    ContentVersion,
+    PublishedPost,
+    PublishJob,
+)
 from tbos_renderer.publishing.meta import (
     MetaContainerProcessingError,
     MetaGraphPublisher,
@@ -35,12 +42,10 @@ from tbos_renderer.publishing.meta import (
 )
 from tbos_renderer.publishing.schemas import (
     HandoffPackageResult,
-    PublishJobExecutionResult,
     PublishResult,
 )
 from tbos_renderer.publishing.service import PublishingService
 from tbos_renderer.publishing.tiktok import TikTokHandoffPackager
-
 
 # ---------------------------------------------------------------------------
 # Test Fixtures
@@ -251,7 +256,9 @@ async def test_meta_publisher_publish_facebook_photo_success(
     client = httpx.AsyncClient(transport=transport)
     publisher = MetaGraphPublisher(publishing_settings, http_client=client)
 
-    result = await publisher.publish_facebook(dummy_photo, caption="Learn Python easily!", is_video=False)
+    result = await publisher.publish_facebook(
+        dummy_photo, caption="Learn Python easily!", is_video=False
+    )
 
     assert result.platform == "facebook"
     assert result.external_post_id == "100200300_98765"
@@ -276,7 +283,9 @@ async def test_meta_publisher_publish_facebook_video_success(
     client = httpx.AsyncClient(transport=transport)
     publisher = MetaGraphPublisher(publishing_settings, http_client=client)
 
-    result = await publisher.publish_facebook(dummy_video, caption="AI Hallucination Reel", is_video=True)
+    result = await publisher.publish_facebook(
+        dummy_video, caption="AI Hallucination Reel", is_video=True
+    )
 
     assert result.platform == "facebook"
     assert result.external_post_id == "video_999888"
@@ -309,7 +318,9 @@ async def test_meta_publisher_publish_instagram_reel_success(
         elif url_str.endswith("/400500600/media_publish") and request.method == "POST":
             return httpx.Response(200, json={"id": "ig_media_reel_999"})
         elif "/ig_media_reel_999" in url_str and request.method == "GET":
-            return httpx.Response(200, json={"permalink": "https://www.instagram.com/reel/Cxyz999/"})
+            return httpx.Response(
+                200, json={"permalink": "https://www.instagram.com/reel/Cxyz999/"}
+            )
         return httpx.Response(404, json={"error": f"Not Found: {url_str}"})
 
     transport = httpx.MockTransport(mock_handler)
@@ -431,7 +442,9 @@ async def test_meta_publisher_api_returned_error(publishing_settings: Settings) 
     def mock_handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             400,
-            json={"error": {"message": "Invalid OAuth token", "code": 190, "type": "OAuthException"}},
+            json={
+                "error": {"message": "Invalid OAuth token", "code": 190, "type": "OAuthException"}
+            },
         )
 
     transport = httpx.MockTransport(mock_handler)

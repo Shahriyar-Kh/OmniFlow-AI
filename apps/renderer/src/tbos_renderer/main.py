@@ -14,6 +14,7 @@ from tbos_renderer import __version__
 from tbos_renderer.api.ai import router as ai_router
 from tbos_renderer.api.content import router as content_router
 from tbos_renderer.api.plans import router as plans_router
+from tbos_renderer.api.publishing import router as publishing_router
 from tbos_renderer.api.rendering import router as rendering_router
 from tbos_renderer.api.topics import router as topics_router
 from tbos_renderer.config import Settings, get_settings, load_brand_config
@@ -35,6 +36,7 @@ from tbos_renderer.database import create_database_engine
 from tbos_renderer.health import database_status, http_service_status
 from tbos_renderer.logging_config import configure_logging
 from tbos_renderer.middleware import CorrelationIdMiddleware
+from tbos_renderer.publishing.service import PublishingService
 from tbos_renderer.rendering.service import RenderingService
 from tbos_renderer.schemas import (
     ErrorResponse,
@@ -61,6 +63,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     repository = ContentRepository(active_engine)
     content_service = ContentEngineService(active_settings, repository)
     rendering_service = RenderingService(active_settings, repository)
+    publishing_service = PublishingService(active_settings, repository)
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):  # type: ignore[no-untyped-def]
@@ -69,6 +72,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         application.state.content_repository = repository
         application.state.content_service = content_service
         application.state.rendering_service = rendering_service
+        application.state.publishing_service = publishing_service
         LOGGER.info("application_started")
         yield
         active_engine.dispose()
@@ -88,6 +92,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     application.state.content_repository = repository
     application.state.content_service = content_service
     application.state.rendering_service = rendering_service
+    application.state.publishing_service = publishing_service
     application.add_middleware(CorrelationIdMiddleware)
 
     @application.exception_handler(RequestValidationError)
@@ -226,6 +231,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     application.include_router(content_router)
     application.include_router(ai_router)
     application.include_router(rendering_router)
+    application.include_router(publishing_router)
     return application
 
 

@@ -1,0 +1,159 @@
+{
+  "name": "TBOS - Social Publisher and TikTok Handoff",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "e4f40c94-960b-6c2f-b495-f7f334560001",
+      "name": "Schedule Trigger - Process Pending Jobs",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://renderer-api:8080/api/v1/publishing/process-pending",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TBOS-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e4f40c94-960b-6c2f-b495-f7f334560002",
+      "name": "Process Pending Publish Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = Array.isArray($json) ? $json : [$json];\nconst succeeded = results.filter(r => r.status === 'succeeded');\nconst failed = results.filter(r => r.status === 'failed' || r.status === 'retry_wait');\nconst tiktokHandoffs = results.filter(r => r.platform === 'tiktok_handoff' && r.status === 'succeeded');\n\nreturn [{\n  json: {\n    total: results.length,\n    succeeded_count: succeeded.length,\n    failed_count: failed.length,\n    has_failures: failed.length > 0,\n    has_tiktok_handoffs: tiktokHandoffs.length > 0,\n    tiktok_handoffs: tiktokHandoffs,\n    summary: `Executed ${results.length} publishing jobs (${succeeded.length} succeeded, ${failed.length} failed/waiting).`\n  }\n}];"
+      },
+      "id": "e4f40c94-960b-6c2f-b495-f7f334560003",
+      "name": "Summarize Publishing Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.has_tiktok_handoffs }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e4f40c94-960b-6c2f-b495-f7f334560004",
+      "name": "Has TikTok Handoffs",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $env.TELEGRAM_APPROVAL_CHAT_ID }}\",\n  \"text\": \"📱 *TikTok Handoff Ready*\\n\\nNew TikTok video package prepared and ready for upload.\\n\\n\" + $('Summarize Publishing Results').item.json.summary,\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {}
+      },
+      "id": "e4f40c94-960b-6c2f-b495-f7f334560005",
+      "name": "Notify Telegram of TikTok Handoff",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger - Process Pending Jobs": {
+      "main": [
+        [
+          {
+            "node": "Process Pending Publish Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Pending Publish Jobs": {
+      "main": [
+        [
+          {
+            "node": "Summarize Publishing Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Publishing Results": {
+      "main": [
+        [
+          {
+            "node": "Has TikTok Handoffs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has TikTok Handoffs": {
+      "main": [
+        [
+          {
+            "node": "Notify Telegram of TikTok Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  }
+}

@@ -31,7 +31,7 @@ class TikTokHandoffPackager:
         video_source_path: Path | str,
         thumbnail_source_path: Path | str | None = None,
     ) -> HandoffPackageResult:
-        """Create a complete TikTok handoff directory bundle with media, cover, and ready-to-copy metadata."""
+        """Create a TikTok handoff bundle with media, cover, and ready-to-copy metadata."""
         bundle_dir = self.storage_base / str(content_id)
         bundle_dir.mkdir(parents=True, exist_ok=True)
 

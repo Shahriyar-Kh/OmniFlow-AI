@@ -122,6 +122,15 @@ class Settings(BaseSettings):
     facebook_hashtag_limit: int = Field(default=15, ge=0, le=30)
     instagram_hashtag_limit: int = Field(default=5, ge=0, le=30)
     tiktok_hashtag_limit: int = Field(default=5, ge=0, le=30)
+    meta_app_id: str | None = None
+    meta_app_secret: SecretStr | None = None
+    meta_page_id: str | None = None
+    meta_instagram_account_id: str | None = None
+    meta_access_token: SecretStr | None = None
+    meta_api_version: str = "v22.0"
+    meta_api_base_url: str = "https://graph.facebook.com"
+    telegram_bot_token: SecretStr | None = None
+    telegram_approval_chat_id: str | None = None
 
     @property
     def sqlalchemy_url(self) -> str:
