@@ -214,6 +214,34 @@
         1540,
         400
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://renderer-api:8080/api/v1/content/{{ $('Format Telegram Message & Payload').item.json.content_id }}/notify-review",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-TBOS-API-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e20b83-859a-5b1f-a384-e6e223450009",
+      "name": "Send Email Review Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        140
+      ]
     }
   ],
   "connections": {
@@ -255,6 +283,11 @@
         [
           {
             "node": "Download Media Binary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Review Alert",
             "type": "main",
             "index": 0
           }

@@ -8,6 +8,7 @@ from fastapi import Header, HTTPException, Request, status
 from tbos_renderer.config import Settings
 from tbos_renderer.content_engine.repository import ContentRepository
 from tbos_renderer.content_engine.service import ContentEngineService
+from tbos_renderer.notifications.email import EmailNotificationService
 from tbos_renderer.publishing.service import PublishingService
 from tbos_renderer.rendering.service import RenderingService
 
@@ -30,6 +31,11 @@ def get_rendering_service(request: Request) -> RenderingService:
 
 def get_publishing_service(request: Request) -> PublishingService:
     return request.app.state.publishing_service  # type: ignore[no-any-return]
+
+
+def get_email_service(request: Request) -> EmailNotificationService:
+    return request.app.state.email_service  # type: ignore[no-any-return]
+
 
 
 def require_internal_api_key(

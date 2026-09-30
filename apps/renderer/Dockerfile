@@ -8,7 +8,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /workspace
 
 RUN groupadd --gid 10001 tbos \
-    && useradd --uid 10001 --gid tbos --create-home --shell /usr/sbin/nologin tbos
+    && useradd --uid 10001 --gid tbos --create-home --shell /usr/sbin/nologin tbos \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md compose.yaml ./
 COPY apps/renderer/src ./apps/renderer/src

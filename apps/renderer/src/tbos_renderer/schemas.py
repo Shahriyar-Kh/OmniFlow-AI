@@ -49,6 +49,7 @@ class FeatureFlagsResponse(BaseModel):
     meta: bool
     r2: bool
     ollama: bool
+    email: bool = False
 
 
 class PublicConfigResponse(BaseModel):

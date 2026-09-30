@@ -8,11 +8,13 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.engine import Engine
 
 from tbos_renderer import __version__
 from tbos_renderer.api.ai import router as ai_router
 from tbos_renderer.api.content import router as content_router
+from tbos_renderer.api.dashboard import router as dashboard_router
 from tbos_renderer.api.plans import router as plans_router
 from tbos_renderer.api.publishing import router as publishing_router
 from tbos_renderer.api.rendering import router as rendering_router
@@ -226,12 +228,20 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
             ),
         )
 
+    active_settings.shared_storage_path.mkdir(parents=True, exist_ok=True)
+    application.mount(
+        "/storage",
+        StaticFiles(directory=str(active_settings.shared_storage_path), html=False),
+        name="storage",
+    )
+
     application.include_router(topics_router)
     application.include_router(plans_router)
     application.include_router(content_router)
     application.include_router(ai_router)
     application.include_router(rendering_router)
     application.include_router(publishing_router)
+    application.include_router(dashboard_router)
     return application
 
 

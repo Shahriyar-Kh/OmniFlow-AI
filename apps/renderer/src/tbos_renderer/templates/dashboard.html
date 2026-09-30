@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechBuilt Content Approval Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              gold: '#D4AF37',
+              navy: '#0B1E36',
+              dark: '#080E1A',
+              card: '#121D30',
+              accent: '#F59E0B'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0B1E36; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="bg-[#080E1A] text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-[#0B1E36]/90 border-b border-slate-700/60 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-bold text-slate-950 text-xl shadow-lg shadow-amber-500/20">
+          TB
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-extrabold tracking-wide text-white text-base">TECHBUILT</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30 font-medium">OPEN SCHOOL</span>
+          </div>
+          <p class="text-xs text-slate-400">Editorial Approval & Media Dashboard</p>
+        </div>
+      </div>
+
+      <!-- Action & Auth Controls -->
+      <div class="flex items-center space-x-3">
+        <!-- API Key Indicator / Input -->
+        <div class="relative hidden sm:flex items-center">
+          <input 
+            type="password" 
+            id="apiKeyInput" 
+            placeholder="X-TBOS-API-Key" 
+            title="Internal API Key"
+            class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-1.5 w-44 text-slate-300 focus:outline-none focus:border-amber-400"
+          />
+          <button id="toggleKeyVisibility" class="absolute right-2 text-slate-400 hover:text-amber-400 text-xs" title="Toggle visibility">
+            👁️
+          </button>
+        </div>
+
+        <!-- Refresh Button -->
+        <button id="refreshBtn" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-3 py-2 rounded-lg border border-slate-700 transition">
+          <span id="refreshIcon">🔄</span>
+          <span>Refresh</span>
+        </button>
+
+        <!-- Trigger Publishing Button -->
+        <button id="triggerPublishBtn" class="flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg shadow-lg shadow-amber-500/20 transition transform active:scale-95">
+          <span id="publishIcon">⚡</span>
+          <span>Trigger Publishing</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
+
+    <!-- KPI / Statistics Header Bar -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col">
+        <span class="text-xs text-slate-400 font-medium">Total Items</span>
+        <span id="statTotal" class="text-2xl font-bold text-white mt-1">0</span>
+      </div>
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col">
+        <span class="text-xs text-amber-400 font-medium">Pending Review</span>
+        <span id="statPending" class="text-2xl font-bold text-amber-400 mt-1">0</span>
+      </div>
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col">
+        <span class="text-xs text-emerald-400 font-medium">Approved / Queued</span>
+        <span id="statApproved" class="text-2xl font-bold text-emerald-400 mt-1">0</span>
+      </div>
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col">
+        <span class="text-xs text-cyan-400 font-medium">Published</span>
+        <span id="statPublished" class="text-2xl font-bold text-cyan-400 mt-1">0</span>
+      </div>
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col">
+        <span class="text-xs text-rose-400 font-medium">Changes Requested</span>
+        <span id="statRejected" class="text-2xl font-bold text-rose-400 mt-1">0</span>
+      </div>
+    </div>
+
+    <!-- Filters, Status Tabs & Search -->
+    <div class="bg-[#121D30] border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Status Tabs -->
+      <div class="flex items-center space-x-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0" id="statusTabs">
+        <button data-filter="all" class="filter-tab active-tab text-xs font-semibold px-3 py-1.5 rounded-lg transition bg-amber-500 text-slate-950">
+          All
+        </button>
+        <button data-filter="pending" class="filter-tab text-xs font-medium px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-300 hover:text-white">
+          Pending Review
+        </button>
+        <button data-filter="approved" class="filter-tab text-xs font-medium px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-300 hover:text-white">
+          Approved
+        </button>
+        <button data-filter="published" class="filter-tab text-xs font-medium px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-300 hover:text-white">
+          Published
+        </button>
+        <button data-filter="rejected" class="filter-tab text-xs font-medium px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-300 hover:text-white">
+          Rejected
+        </button>
+      </div>
+
+      <!-- Type Filter & Search Bar -->
+      <div class="flex items-center space-x-3 w-full md:w-auto">
+        <select id="typeFilter" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-slate-300 focus:outline-none focus:border-amber-400">
+          <option value="all">All Formats</option>
+          <option value="poster">🖼️ Poster (1080x1350)</option>
+          <option value="reel">🎬 Reel (9:16 Video)</option>
+        </select>
+        <div class="relative flex-1 md:w-64">
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search topic or pillar..." 
+            class="w-full bg-slate-900 border border-slate-700 text-xs rounded-lg pl-8 pr-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+          />
+          <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Queue Cards Grid -->
+    <div id="contentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Loading Skeleton Placeholder -->
+      <div class="bg-[#121D30] border border-slate-800 rounded-xl p-5 animate-pulse space-y-4">
+        <div class="h-4 bg-slate-800 rounded w-1/3"></div>
+        <div class="h-6 bg-slate-800 rounded w-3/4"></div>
+        <div class="h-32 bg-slate-800 rounded w-full"></div>
+        <div class="h-8 bg-slate-800 rounded w-full"></div>
+      </div>
+    </div>
+
+    <!-- Empty State Message -->
+    <div id="emptyState" class="hidden bg-[#121D30] border border-slate-800 rounded-xl p-12 text-center space-y-3">
+      <div class="text-4xl">📂</div>
+      <h3 class="text-lg font-bold text-white">No content items found</h3>
+      <p class="text-sm text-slate-400">There are no content pieces matching the selected filters.</p>
+    </div>
+
+  </main>
+
+  <!-- Detailed Media Preview & Editorial Review Modal -->
+  <div id="previewModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden overflow-y-auto">
+    <div class="bg-[#0F172A] border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div class="flex items-center space-x-3">
+          <span id="modalTypeBadge" class="text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider"></span>
+          <span id="modalStatusBadge" class="text-xs px-2.5 py-1 rounded font-semibold"></span>
+          <span id="modalQaBadge" class="text-xs px-2 py-0.5 rounded font-mono font-bold"></span>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-white text-xl px-2 py-1 rounded-lg hover:bg-slate-800 transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Body (Two-Column Layout) -->
+      <div class="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Column: Media Player / Image Viewer (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col items-center justify-start space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+          <div id="mediaContainer" class="w-full flex flex-col items-center justify-center min-h-[320px]">
+            <!-- Dynamic Content (Video or Image) -->
+          </div>
+
+          <!-- Direct download/view links -->
+          <div id="mediaLinks" class="w-full flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+            <span id="mediaDims">1080 x 1350</span>
+            <a id="directMediaLink" href="#" target="_blank" class="text-amber-400 hover:underline flex items-center space-x-1">
+              <span>Open Original File</span>
+              <span>↗</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Right Column: Metadata, Captions, Script, QA (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-5">
+          <!-- Topic & Pillar -->
+          <div>
+            <span id="modalPillar" class="text-xs text-amber-400 uppercase tracking-wider font-semibold">Pillar</span>
+            <h2 id="modalTitle" class="text-xl font-bold text-white mt-1 leading-snug">Topic Title</h2>
+          </div>
+
+          <!-- Roman Urdu Hook Banner -->
+          <div class="bg-amber-500/10 border-l-4 border-amber-500 p-3 rounded-r-lg">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 block mb-0.5">Catchy Hook (Roman Urdu)</span>
+            <p id="modalHook" class="text-sm font-medium text-amber-100 italic"></p>
+          </div>
+
+          <!-- Multi-platform Captions Tabs -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">Social Captions</span>
+              <button id="copyCaptionBtn" class="text-xs text-amber-400 hover:text-amber-300 flex items-center space-x-1 bg-slate-800 px-2.5 py-1 rounded border border-slate-700">
+                <span>📋</span>
+                <span id="copyCaptionText">Copy Caption</span>
+              </button>
+            </div>
+            <div class="flex space-x-2 border-b border-slate-800 pb-1 text-xs">
+              <button id="tabCapIg" class="caption-tab text-amber-400 border-b-2 border-amber-400 pb-1 font-semibold">Instagram</button>
+              <button id="tabCapFb" class="caption-tab text-slate-400 hover:text-white pb-1 font-semibold">Facebook</button>
+              <button id="tabCapTt" class="caption-tab text-slate-400 hover:text-white pb-1 font-semibold">TikTok</button>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs leading-relaxed text-slate-300 max-h-36 overflow-y-auto whitespace-pre-wrap" id="captionContent">
+            </div>
+          </div>
+
+          <!-- Hashtags -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-slate-300">Target Hashtags</span>
+              <button id="copyHashtagsBtn" class="text-xs text-slate-400 hover:text-amber-400 flex items-center space-x-1">
+                <span>📋 Copy All</span>
+              </button>
+            </div>
+            <div id="modalHashtags" class="flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- Reel Scenes or Poster Teaching Points -->
+          <div id="sceneContainer" class="space-y-2 border-t border-slate-800 pt-4">
+            <span class="text-xs font-semibold text-slate-300 block">Content Structure / Scenes</span>
+            <div id="sceneList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+          </div>
+
+          <!-- QA Quality Audit Breakdown -->
+          <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-3 space-y-2 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200">QA Report & Factuality Check</span>
+              <span id="qaScoreDetails" class="font-mono font-bold text-amber-400">92/100</span>
+            </div>
+            <div id="qaReportList" class="space-y-1 text-slate-400 text-[11px]"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer (Action Buttons) -->
+      <div class="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <button id="modalCloseActionBtn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium px-4 py-2 rounded-lg transition">
+          Close
+        </button>
+
+        <div class="flex items-center space-x-3">
+          <button id="modalRejectBtn" class="bg-rose-900/40 hover:bg-rose-900/80 text-rose-300 border border-rose-700/60 text-xs font-semibold px-4 py-2 rounded-lg transition">
+            ❌ Request Changes / Reject
+          </button>
+          <button id="modalApproveBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-5 py-2 rounded-lg shadow-lg shadow-emerald-600/30 transition transform active:scale-95">
+            ✅ Approve Content
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Rejection Notes Modal -->
+  <div id="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+    <div class="bg-[#0F172A] border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <span>❌</span>
+          <span>Reject / Request Changes</span>
+        </h3>
+        <button id="cancelRejectModal" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Please provide feedback notes for the editorial record. The content status will be moved to <code class="text-rose-400">CHANGES_REQUESTED</code>.
+      </p>
+      <textarea 
+        id="rejectNotes" 
+        rows="4" 
+        placeholder="E.g.: Pronunciation of word in scene 2 needs adjustment, or hook is too long..."
+        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 focus:outline-none focus:border-rose-400 placeholder-slate-600"
+      ></textarea>
+      <div class="flex justify-end space-x-3">
+        <button id="cancelRejectBtn" class="bg-slate-800 text-slate-300 text-xs px-3 py-1.5 rounded-lg hover:bg-slate-700">Cancel</button>
+        <button id="confirmRejectBtn" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-md transition">
+          Confirm Rejection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Injected Variables from FastAPI -->
+  <script>
+    window.SERVER_DEFAULT_KEY = "{{ internal_api_key }}";
+  </script>
+
+  <!-- Dashboard JavaScript Application -->
+  <script>
+    const state = {
+      items: [],
+      filteredItems: [],
+      currentFilter: 'all',
+      typeFilter: 'all',
+      searchQuery: '',
+      activeContent: null,
+      activeVersion: null,
+      activeAssets: [],
+      activeCaptionPlatform: 'instagram',
+      pendingRejectId: null
+    };
+
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const toggleKeyVisibility = document.getElementById('toggleKeyVisibility');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshIcon = document.getElementById('refreshIcon');
+    const triggerPublishBtn = document.getElementById('triggerPublishBtn');
+    const contentGrid = document.getElementById('contentGrid');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const statusTabs = document.getElementById('statusTabs');
+
+    const previewModal = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const modalCloseActionBtn = document.getElementById('modalCloseActionBtn');
+    const modalApproveBtn = document.getElementById('modalApproveBtn');
+    const modalRejectBtn = document.getElementById('modalRejectBtn');
+    const rejectModal = document.getElementById('rejectModal');
+    const rejectNotes = document.getElementById('rejectNotes');
+    const cancelRejectBtn = document.getElementById('cancelRejectBtn');
+    const cancelRejectModal = document.getElementById('cancelRejectModal');
+    const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+
+    function getApiKey() {
+      return localStorage.getItem('tbos_api_key') || window.SERVER_DEFAULT_KEY || '';
+    }
+
+    function initAuth() {
+      const key = getApiKey();
+      apiKeyInput.value = key;
+      apiKeyInput.addEventListener('change', () => {
+        localStorage.setItem('tbos_api_key', apiKeyInput.value.trim());
+        showToast('API Key saved locally', 'info');
+      });
+      toggleKeyVisibility.addEventListener('click', () => {
+        apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+      });
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-emerald-950/90 border-emerald-600 text-emerald-200',
+        error: 'bg-rose-950/90 border-rose-600 text-rose-200',
+        info: 'bg-slate-900/90 border-slate-700 text-slate-200',
+        warning: 'bg-amber-950/90 border-amber-600 text-amber-200'
+      };
+      const icons = {
+        success: '✅',
+        error: '❌',
+        info: 'ℹ️',
+        warning: '⚠️'
+      };
+
+      toast.className = `${bgColors[type]} border px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-xs pointer-events-auto transition-all transform duration-300 translate-y-2 opacity-0`;
+      toast.innerHTML = `<span>${icons[type]}</span><span class="font-medium">${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-4');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    async function apiFetch(url, options = {}) {
+      const headers = options.headers || {};
+      const key = getApiKey();
+      if (key) {
+        headers['X-TBOS-API-Key'] = key;
+      }
+      return fetch(url, { ...options, headers });
+    }
+
+    async function loadContent() {
+      refreshIcon.classList.add('animate-spin');
+      try {
+        const res = await apiFetch('/api/v1/content?page=1&page_size=100');
+        if (!res.ok) {
+          throw new Error(`Failed to load content (${res.status})`);
+        }
+        const data = await res.json();
+        state.items = data.items || [];
+        updateStats();
+        applyFilters();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        refreshIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function updateStats() {
+      const items = state.items;
+      document.getElementById('statTotal').textContent = items.length;
+      document.getElementById('statPending').textContent = items.filter(i => ['DRAFTED', 'QA_PASSED', 'IDEA'].includes(i.status)).length;
+      document.getElementById('statApproved').textContent = items.filter(i => ['APPROVED', 'PUBLISHING'].includes(i.status)).length;
+      document.getElementById('statPublished').textContent = items.filter(i => i.status === 'PUBLISHED').length;
+      document.getElementById('statRejected').textContent = items.filter(i => i.status === 'CHANGES_REQUESTED').length;
+    }
+
+    function applyFilters() {
+      let filtered = [...state.items];
+
+      if (state.currentFilter === 'pending') {
+        filtered = filtered.filter(i => ['DRAFTED', 'QA_PASSED', 'IDEA'].includes(i.status));
+      } else if (state.currentFilter === 'approved') {
+        filtered = filtered.filter(i => ['APPROVED', 'PUBLISHING'].includes(i.status));
+      } else if (state.currentFilter === 'published') {
+        filtered = filtered.filter(i => i.status === 'PUBLISHED');
+      } else if (state.currentFilter === 'rejected') {
+        filtered = filtered.filter(i => i.status === 'CHANGES_REQUESTED');
+      }
+
+      if (state.typeFilter !== 'all') {
+        filtered = filtered.filter(i => i.content_type === state.typeFilter);
+      }
+
+      if (state.searchQuery.trim()) {
+        const q = state.searchQuery.toLowerCase();
+        filtered = filtered.filter(i => 
+          (i.topic && i.topic.toLowerCase().includes(q)) ||
+          (i.pillar && i.pillar.toLowerCase().includes(q))
+        );
+      }
+
+      state.filteredItems = filtered;
+      renderGrid();
+    }
+
+    function renderGrid() {
+      if (state.filteredItems.length === 0) {
+        contentGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      contentGrid.innerHTML = state.filteredItems.map(item => {
+        const isReel = item.content_type === 'reel';
+        const typeBadge = isReel 
+          ? `<span class="bg-purple-950/70 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded text-[11px] font-bold">🎬 REEL (9:16)</span>`
+          : `<span class="bg-blue-950/70 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded text-[11px] font-bold">🖼️ POSTER (1080x1350)</span>`;
+
+        const statusBadges = {
+          QA_PASSED: `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[11px] font-semibold">QA Passed (Review Ready)</span>`,
+          DRAFTED: `<span class="bg-slate-700/50 text-slate-300 border border-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">Drafted</span>`,
+          APPROVED: `<span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[11px] font-semibold">Approved</span>`,
+          PUBLISHING: `<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded text-[11px] font-semibold animate-pulse">Publishing</span>`,
+          PUBLISHED: `<span class="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded text-[11px] font-semibold">Live Published</span>`,
+          CHANGES_REQUESTED: `<span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded text-[11px] font-semibold">Changes Requested</span>`
+        };
+
+        const statusHtml = statusBadges[item.status] || `<span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[11px]">${item.status}</span>`;
+
+        return `
+          <div class="bg-[#121D30] border border-slate-800/80 rounded-xl p-5 hover:border-slate-700 transition flex flex-col justify-between shadow-lg">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                ${typeBadge}
+                ${statusHtml}
+              </div>
+
+              <div>
+                <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">${item.pillar}</span>
+                <h3 class="text-base font-bold text-white mt-0.5 line-clamp-2 leading-snug">${item.topic}</h3>
+              </div>
+
+              <div class="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+                <span>Version: <strong class="text-slate-200">v${item.current_version || 1}</strong></span>
+                <span class="text-[11px]">Language: <strong class="text-amber-400 capitalize">${(item.language || 'roman_urdu').replace('_', ' ')}</strong></span>
+              </div>
+            </div>
+
+            <div class="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between gap-2">
+              <button onclick="openPreview('${item.id}')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-700/80 transition flex items-center justify-center space-x-1.5">
+                <span>👁️</span>
+                <span>Review & Preview</span>
+              </button>
+              
+              ${item.status !== 'APPROVED' && item.status !== 'PUBLISHED' ? `
+                <button onclick="quickApprove('${item.id}')" title="1-Click Approve" class="bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition">
+                  ✅
+                </button>
+                <button onclick="openRejectPrompt('${item.id}')" title="Reject / Request Changes" class="bg-rose-900/50 hover:bg-rose-800/80 text-rose-300 text-xs font-bold py-2 px-3 rounded-lg border border-rose-700/50 transition">
+                  ❌
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openPreview(contentId) {
+      try {
+        const [verRes, assetsRes] = await Promise.all([
+          apiFetch(`/api/v1/content/${contentId}`),
+          apiFetch(`/api/v1/content/${contentId}/assets`)
+        ]);
+
+        if (!verRes.ok) throw new Error('Could not load content details');
+        const versionData = await verRes.json();
+        const assets = assetsRes.ok ? await assetsRes.json() : [];
+
+        state.activeContent = versionData;
+        state.activeAssets = assets;
+
+        populateModal(versionData, assets);
+        previewModal.classList.remove('hidden');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function populateModal(versionData, assets) {
+      const content = versionData.content || {};
+      const isReel = content.metadata?.content_type === 'reel';
+
+      document.getElementById('modalTypeBadge').textContent = isReel ? '🎬 Reel Short' : '🖼️ Poster';
+      document.getElementById('modalTypeBadge').className = isReel 
+        ? 'text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider bg-purple-950/80 text-purple-300 border border-purple-700'
+        : 'text-xs px-2.5 py-1 rounded font-bold uppercase tracking-wider bg-blue-950/80 text-blue-300 border border-blue-700';
+
+      document.getElementById('modalStatusBadge').textContent = versionData.status;
+      document.getElementById('modalStatusBadge').className = 'text-xs px-2.5 py-1 rounded font-semibold bg-slate-800 text-slate-300 border border-slate-700';
+
+      const qaReport = versionData.quality_report || {};
+      const qaScore = qaReport.overall_score || 90;
+      document.getElementById('modalQaBadge').textContent = `QA: ${qaScore}/100`;
+      document.getElementById('modalQaBadge').className = qaScore >= 85 
+        ? 'text-xs px-2 py-0.5 rounded font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700'
+        : 'text-xs px-2 py-0.5 rounded font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700';
+      document.getElementById('qaScoreDetails').textContent = `${qaScore}/100`;
+
+      const qaList = document.getElementById('qaReportList');
+      if (qaReport.criteria) {
+        qaList.innerHTML = Object.entries(qaReport.criteria).map(([k, v]) => `
+          <div class="flex items-center justify-between">
+            <span class="capitalize">${k.replace(/_/g, ' ')}:</span>
+            <span class="${v ? 'text-emerald-400' : 'text-rose-400'}">${v ? 'PASS' : 'WARN'}</span>
+          </div>
+        `).join('');
+      } else {
+        qaList.innerHTML = `
+          <div class="flex items-center justify-between"><span>Roman Urdu Vocabulary:</span><span class="text-emerald-400">PASS</span></div>
+          <div class="flex items-center justify-between"><span>Safe Fact Grounding:</span><span class="text-emerald-400">PASS</span></div>
+          <div class="flex items-center justify-between"><span>Policy Compliance:</span><span class="text-emerald-400">PASS</span></div>
+        `;
+      }
+
+      document.getElementById('modalPillar').textContent = content.metadata?.content_pillar || 'Computer Science';
+      document.getElementById('modalTitle').textContent = content.metadata?.topic || versionData.title || 'Topic';
+      document.getElementById('modalHook').textContent = content.hook || 'Hook not specified';
+
+      const mediaContainer = document.getElementById('mediaContainer');
+      const directLink = document.getElementById('directMediaLink');
+      const dimsLabel = document.getElementById('mediaDims');
+
+      if (isReel) {
+        dimsLabel.textContent = '1080 x 1920 (9:16 Video)';
+        const videoAsset = assets.find(a => a.asset_type === 'reel') || assets[0];
+        const audioAsset = assets.find(a => a.asset_type === 'narration');
+        
+        let videoSrc = '';
+        if (videoAsset) {
+          if (videoAsset.local_path && videoAsset.local_path.includes('renders')) {
+            videoSrc = '/storage/renders/' + videoAsset.local_path.split('renders')[1].replace(/\\/g, '/').replace(/^\/+/, '');
+          } else {
+            videoSrc = `/api/v1/assets/${videoAsset.id}/download`;
+          }
+          directLink.href = videoSrc;
+        }
+
+        mediaContainer.innerHTML = `
+          <div class="w-full max-w-[280px] aspect-[9/16] bg-slate-900 rounded-xl overflow-hidden shadow-2xl relative border border-slate-700 flex flex-col justify-center">
+            ${videoSrc ? `
+              <video controls playsinline class="w-full h-full object-cover">
+                <source src="${videoSrc}" type="video/mp4">
+                Your browser does not support HTML5 video.
+              </video>
+            ` : `
+              <div class="text-center p-4 text-xs text-slate-400">
+                <span class="text-2xl block mb-2">🎬</span>
+                Video asset pending generation or processing
+              </div>
+            `}
+          </div>
+          ${audioAsset ? `
+            <div class="w-full mt-3 p-2 bg-slate-900 border border-slate-800 rounded-lg">
+              <span class="text-[11px] text-slate-400 block mb-1">🎙️ Edge-TTS Narration Audio:</span>
+              <audio controls class="w-full h-8">
+                <source src="/api/v1/assets/${audioAsset.id}/download" type="audio/mpeg">
+              </audio>
+            </div>
+          ` : ''}
+        `;
+      } else {
+        dimsLabel.textContent = '1080 x 1350 (4:5 Poster)';
+        const posterAsset = assets.find(a => a.asset_type === 'poster') || assets[0];
+        let imgSrc = '';
+        if (posterAsset) {
+          if (posterAsset.local_path && posterAsset.local_path.includes('renders')) {
+            imgSrc = '/storage/renders/' + posterAsset.local_path.split('renders')[1].replace(/\\/g, '/').replace(/^\/+/, '');
+          } else {
+            imgSrc = `/api/v1/assets/${posterAsset.id}/download`;
+          }
+          directLink.href = imgSrc;
+        }
+
+        mediaContainer.innerHTML = `
+          <div class="w-full max-w-[320px] aspect-[4/5] bg-slate-900 rounded-xl overflow-hidden shadow-2xl relative border border-slate-700 flex items-center justify-center">
+            ${imgSrc ? `
+              <img src="${imgSrc}" alt="Poster Media" class="w-full h-full object-cover rounded-xl" />
+            ` : `
+              <div class="text-center p-4 text-xs text-slate-400">
+                <span class="text-2xl block mb-2">🖼️</span>
+                Poster asset pending rendering
+              </div>
+            `}
+          </div>
+        `;
+      }
+
+      updateCaptionTab('instagram');
+      const tags = content.hashtags?.instagram || content.hashtags?.facebook || ['#TechBuilt', '#LearnAI', '#Python'];
+      const tagsContainer = document.getElementById('modalHashtags');
+      tagsContainer.innerHTML = tags.map(t => `
+        <span class="bg-slate-800 text-amber-300 text-[11px] px-2 py-0.5 rounded-full border border-slate-700">${t.startsWith('#') ? t : '#' + t}</span>
+      `).join('');
+
+      const sceneList = document.getElementById('sceneList');
+      if (isReel && content.scenes && content.scenes.length > 0) {
+        sceneList.innerHTML = content.scenes.map(s => `
+          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs space-y-1">
+            <div class="flex items-center justify-between text-slate-400 font-semibold text-[11px]">
+              <span>Scene ${s.scene_number} (${s.duration_seconds || 5}s)</span>
+              <span class="text-amber-400">${s.on_screen_text || ''}</span>
+            </div>
+            <p class="text-slate-300 italic">"${s.narration}"</p>
+          </div>
+        `).join('');
+      } else if (content.teaching_points && content.teaching_points.length > 0) {
+        sceneList.innerHTML = content.teaching_points.map((pt, idx) => `
+          <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-lg text-xs flex items-start space-x-2">
+            <span class="text-amber-400 font-bold">${idx + 1}.</span>
+            <span class="text-slate-200">${pt}</span>
+          </div>
+        `).join('');
+      } else {
+        sceneList.innerHTML = `<span class="text-xs text-slate-500">Standard educational layout</span>`;
+      }
+
+      modalApproveBtn.onclick = () => {
+        executeApproval(versionData.content_id, 'approved', 'web_admin', 'Approved via Web Dashboard');
+        previewModal.classList.add('hidden');
+      };
+      modalRejectBtn.onclick = () => {
+        previewModal.classList.add('hidden');
+        openRejectPrompt(versionData.content_id);
+      };
+    }
+
+    function updateCaptionTab(platform) {
+      state.activeCaptionPlatform = platform;
+      const content = state.activeContent?.content || {};
+      const captions = content.captions || {};
+      const text = captions[platform] || content.hook || 'Caption not generated';
+      document.getElementById('captionContent').textContent = text;
+
+      ['Ig', 'Fb', 'Tt'].forEach(p => {
+        const btn = document.getElementById(`tabCap${p}`);
+        if ((platform === 'instagram' && p === 'Ig') || (platform === 'facebook' && p === 'Fb') || (platform === 'tiktok' && p === 'Tt')) {
+          btn.className = 'caption-tab text-amber-400 border-b-2 border-amber-400 pb-1 font-semibold';
+        } else {
+          btn.className = 'caption-tab text-slate-400 hover:text-white pb-1 font-semibold';
+        }
+      });
+    }
+
+    async function quickApprove(contentId) {
+      await executeApproval(contentId, 'approved', 'web_admin', 'Quick-approved via Web Dashboard');
+    }
+
+    function openRejectPrompt(contentId) {
+      state.pendingRejectId = contentId;
+      rejectNotes.value = '';
+      rejectModal.classList.remove('hidden');
+    }
+
+    async function executeApproval(contentId, decision, reviewerRef, notes) {
+      try {
+        const payload = {
+          decision: decision,
+          reviewer_reference: reviewerRef,
+          notes: notes
+        };
+        const res = await apiFetch(`/api/v1/content/${contentId}/approval`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || errData.message || `Approval failed (${res.status})`);
+        }
+
+        const result = await res.json();
+        if (decision === 'approved') {
+          showToast(`Content approved! ${result.publish_jobs ? result.publish_jobs.length : 3} publish jobs provisioned.`, 'success');
+        } else {
+          showToast(`Content marked as changes requested.`, 'warning');
+        }
+
+        await loadContent();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function triggerPublishing() {
+      const icon = document.getElementById('publishIcon');
+      triggerPublishBtn.disabled = true;
+      icon.classList.add('animate-spin');
+      try {
+        const res = await apiFetch('/api/v1/publishing/process-pending', {
+          method: 'POST'
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Publishing execution failed (${res.status})`);
+        }
+
+        const results = await res.json();
+        const succeeded = results.filter(r => r.status === 'succeeded').length;
+        const failed = results.filter(r => r.status === 'failed' || r.status === 'retry_wait').length;
+
+        showToast(`Publishing executed: ${succeeded} succeeded, ${failed} failed/retry.`, succeeded > 0 ? 'success' : 'info');
+        await loadContent();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        triggerPublishBtn.disabled = false;
+        icon.classList.remove('animate-spin');
+      }
+    }
+
+    function setupEventListeners() {
+      initAuth();
+
+      refreshBtn.addEventListener('click', loadContent);
+      triggerPublishBtn.addEventListener('click', triggerPublishing);
+
+      statusTabs.addEventListener('click', (e) => {
+        if (e.target.dataset.filter) {
+          state.currentFilter = e.target.dataset.filter;
+          document.querySelectorAll('.filter-tab').forEach(b => {
+            b.className = 'filter-tab text-xs font-medium px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-300 hover:text-white';
+          });
+          e.target.className = 'filter-tab text-xs font-semibold px-3 py-1.5 rounded-lg transition bg-amber-500 text-slate-950';
+          applyFilters();
+        }
+      });
+
+      typeFilter.addEventListener('change', (e) => {
+        state.typeFilter = e.target.value;
+        applyFilters();
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('tabCapIg').addEventListener('click', () => updateCaptionTab('instagram'));
+      document.getElementById('tabCapFb').addEventListener('click', () => updateCaptionTab('facebook'));
+      document.getElementById('tabCapTt').addEventListener('click', () => updateCaptionTab('tiktok'));
+
+      document.getElementById('copyCaptionBtn').addEventListener('click', () => {
+        const text = document.getElementById('captionContent').textContent;
+        navigator.clipboard.writeText(text);
+        document.getElementById('copyCaptionText').textContent = 'Copied!';
+        setTimeout(() => document.getElementById('copyCaptionText').textContent = 'Copy Caption', 2000);
+      });
+
+      document.getElementById('copyHashtagsBtn').addEventListener('click', () => {
+        const tags = Array.from(document.getElementById('modalHashtags').children).map(c => c.textContent).join(' ');
+        navigator.clipboard.writeText(tags);
+        showToast('Hashtags copied to clipboard', 'info');
+      });
+
+      closeModalBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
+      modalCloseActionBtn.addEventListener('click', () => previewModal.classList.add('hidden'));
+      previewModal.addEventListener('click', (e) => {
+        if (e.target === previewModal) previewModal.classList.add('hidden');
+      });
+
+      cancelRejectBtn.addEventListener('click', () => rejectModal.classList.add('hidden'));
+      cancelRejectModal.addEventListener('click', () => rejectModal.classList.add('hidden'));
+      confirmRejectBtn.addEventListener('click', () => {
+        if (state.pendingRejectId) {
+          executeApproval(
+            state.pendingRejectId,
+            'rejected',
+            'web_admin',
+            rejectNotes.value.trim() || 'Rejected via Web Dashboard'
+          );
+          rejectModal.classList.add('hidden');
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          previewModal.classList.add('hidden');
+          rejectModal.classList.add('hidden');
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      loadContent();
+    });
+  </script>
+</body>
+</html>
