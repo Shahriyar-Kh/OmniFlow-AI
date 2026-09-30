@@ -1,0 +1,47 @@
+# Production Docker Compose Overlay for TBOS Automation
+# Usage:
+#   Standard production run (loopback binding only):
+#     docker compose -f compose.yaml -f docker-compose.prod.yml up -d
+#   Production run with containerized Cloudflare Tunnel:
+#     docker compose -f compose.yaml -f docker-compose.prod.yml --profile cloudflare up -d
+
+services:
+  postgres:
+    restart: always
+
+  n8n:
+    restart: always
+    environment:
+      N8N_HOST: ${N8N_DOMAIN:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-https}
+      N8N_SECURE_COOKIE: "true"
+      WEBHOOK_URL: https://${N8N_DOMAIN:-localhost}/
+    ports:
+      - "127.0.0.1:${N8N_PORT:-5678}:5678"
+
+  renderer-api:
+    restart: always
+    environment:
+      APP_ENV: production
+      APP_OPENAPI_ENABLED: "false"
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-INFO}
+      DASHBOARD_PUBLIC_URL: ${DASHBOARD_PUBLIC_URL:-http://localhost:8080/dashboard}
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.0
+    restart: always
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    command: tunnel --no-autoupdate run
+    networks:
+      - tbos_edge
+    depends_on:
+      renderer-api:
+        condition: service_healthy
+      n8n:
+        condition: service_healthy
+    profiles:
+      - cloudflare

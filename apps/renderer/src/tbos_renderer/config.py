@@ -131,6 +131,22 @@ class Settings(BaseSettings):
     meta_api_base_url: str = "https://graph.facebook.com"
     telegram_bot_token: SecretStr | None = None
     telegram_approval_chat_id: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str | None = None
+    notification_email: str | None = None
+    dashboard_public_url: str = "http://localhost:8080/dashboard"
+    feature_email_notifications_enabled: bool = False
+
+    @property
+    def is_email_configured(self) -> bool:
+        return bool(
+            self.feature_email_notifications_enabled
+            and self.smtp_host
+            and self.notification_email
+        )
 
     @property
     def sqlalchemy_url(self) -> str:
