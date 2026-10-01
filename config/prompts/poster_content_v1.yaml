@@ -19,16 +19,23 @@ template: |
   {{ approved_facts | tojson }}
   OUTPUT CONTRACT:
   {{ output_schema | tojson }}
-  Omit metadata. Return headline, optional subheadline, 3-5 teaching_points, cta, visual_concept, distinct captions, focused hashtags, and alt_text.
+  Omit metadata. Return headline, optional subheadline, clean code_snippet (max 6-8 lines) with exact code_output, 3-5 teaching_points, optional practice_question (question, options A-D, answer, explanation), cta, visual_concept, distinct captions, focused hashtags, and alt_text.
 example_output:
-  headline: "API Kya Hoti Hai?"
-  subheadline: "Software apps ka clear communication bridge"
-  teaching_points: ["App request bhejti hai", "API rules define karti hai", "Server response wapas deta hai"]
+  headline: "Python List vs Tuple"
+  subheadline: "Mutable vs Immutable Data Structures"
+  code_snippet: "a = [1, 2]\na.append(3)\nb = (1, 2)\nprint(a, b)"
+  code_output: "[1, 2, 3] (1, 2)"
+  teaching_points: ["Lists mutable hote hain (change ho sakte hain)", "Tuples immutable hote hain (fixed rehte hain)", "Tuples memory efficient aur fast hote hain"]
+  practice_question:
+    question: "Kon sa data structure immutable hota hai?"
+    options: ["List", "Tuple", "Dictionary", "Set"]
+    answer: "Tuple"
+    explanation: "Tuple create hone ke baad change nahi kiya ja sakta."
   cta: "Is concept ko save karein"
-  visual_concept: "Two apps connected by a labelled bridge"
-  captions: {facebook: "API apps ko baat karne ka tareeqa deti hai.", instagram: "API ko simple bridge ki tarah samjhein.", tiktok: "API ka simple concept — save karein."}
-  hashtags: {facebook: ["#TechBuiltOpenSchool"], instagram: ["#LearnAPI"], tiktok: ["#TechTok"]}
-  alt_text: "Two software applications connected through an API bridge diagram."
+  visual_concept: "IDE card with code snippet, execution output, and takeaway points"
+  captions: {facebook: "Python List vs Tuple ka clear difference samjhein.", instagram: "Python List aur Tuple mein main farq kya hai?", tiktok: "Python List vs Tuple quick guide — save karein."}
+  hashtags: {facebook: ["#TechBuiltOpenSchool", "#PythonBasics"], instagram: ["#PythonTips", "#LearnPython"], tiktok: ["#PythonCode", "#TechTok"]}
+  alt_text: "Educational poster explaining Python List vs Tuple with code snippet, execution output, and interactive practice question."
 active: true
 created_at: "2026-09-22T00:00:00Z"
-updated_at: "2026-09-22T00:00:00Z"
+updated_at: "2026-10-01T00:00:00Z"

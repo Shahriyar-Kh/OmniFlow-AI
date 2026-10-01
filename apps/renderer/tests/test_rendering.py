@@ -202,7 +202,7 @@ def test_poster_renderer_image_dimensions(
     img = renderer.render(sample_poster_content)
 
     assert isinstance(img, Image.Image)
-    assert img.size == (1080, 1350)
+    assert img.size == (1080, 1080)
 
 
 def test_poster_renderer_render_to_file(
@@ -215,9 +215,42 @@ def test_poster_renderer_render_to_file(
     result = renderer.render_to_file(sample_poster_content, target)
     assert target.exists()
     assert result["width"] == 1080
-    assert result["height"] == 1350
+    assert result["height"] == 1080
     assert len(result["sha256"]) == 64
     assert result["mime_type"] == "image/png"
+
+
+def test_poster_renderer_hybrid_template_and_quiz(
+    tmp_path: Path, settings: Settings, sample_poster_content: PosterContent
+) -> None:
+    from tbos_renderer.content_engine.schemas import PracticeQuestion
+
+    # Test with custom code snippet and practice quiz
+    sample_poster_content.code_snippet = "x = 42\nprint(x)"
+    sample_poster_content.code_output = "42"
+    sample_poster_content.practice_question = PracticeQuestion(
+        question="What is x?",
+        options=["A) 42", "B) None", "C) Error", "D) 0"],
+        answer="A) 42",
+        explanation="x is 42",
+    )
+
+    # 1. Without template (dynamic luxury canvas)
+    empty_templates = tmp_path / "no_templates"
+    empty_templates.mkdir()
+    renderer_dynamic = PosterRenderer(templates_dir=empty_templates)
+    img_dynamic = renderer_dynamic.render(sample_poster_content)
+    assert img_dynamic.size == (1080, 1080)
+
+    # 2. With template image
+    templates_dir = tmp_path / "templates"
+    templates_dir.mkdir()
+    template_img = Image.new("RGB", (1080, 1080), color="#0B1120")
+    template_img.save(templates_dir / "master_template.png")
+
+    renderer_template = PosterRenderer(templates_dir=templates_dir)
+    img_template = renderer_template.render(sample_poster_content)
+    assert img_template.size == (1080, 1080)
 
 
 # ---------------------------------------------------------------------------

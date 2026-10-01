@@ -15,6 +15,7 @@ from tbos_renderer import __version__
 from tbos_renderer.api.ai import router as ai_router
 from tbos_renderer.api.content import router as content_router
 from tbos_renderer.api.dashboard import router as dashboard_router
+from tbos_renderer.api.notifications import router as notifications_router
 from tbos_renderer.api.plans import router as plans_router
 from tbos_renderer.api.publishing import router as publishing_router
 from tbos_renderer.api.rendering import router as rendering_router
@@ -38,6 +39,7 @@ from tbos_renderer.database import create_database_engine
 from tbos_renderer.health import database_status, http_service_status
 from tbos_renderer.logging_config import configure_logging
 from tbos_renderer.middleware import CorrelationIdMiddleware
+from tbos_renderer.notifications.email import EmailNotificationService
 from tbos_renderer.publishing.service import PublishingService
 from tbos_renderer.rendering.service import RenderingService
 from tbos_renderer.schemas import (
@@ -63,8 +65,11 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     configure_logging(active_settings.app_log_level)
     active_engine = engine or create_database_engine(active_settings)
     repository = ContentRepository(active_engine)
+    email_service = EmailNotificationService(active_settings)
     content_service = ContentEngineService(active_settings, repository)
-    rendering_service = RenderingService(active_settings, repository)
+    rendering_service = RenderingService(
+        active_settings, repository, email_notifier=email_service
+    )
     publishing_service = PublishingService(active_settings, repository)
 
     @asynccontextmanager
@@ -72,6 +77,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
         application.state.settings = active_settings
         application.state.engine = active_engine
         application.state.content_repository = repository
+        application.state.email_service = email_service
         application.state.content_service = content_service
         application.state.rendering_service = rendering_service
         application.state.publishing_service = publishing_service
@@ -92,6 +98,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     application.state.settings = active_settings
     application.state.engine = active_engine
     application.state.content_repository = repository
+    application.state.email_service = email_service
     application.state.content_service = content_service
     application.state.rendering_service = rendering_service
     application.state.publishing_service = publishing_service
@@ -242,6 +249,7 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     application.include_router(rendering_router)
     application.include_router(publishing_router)
     application.include_router(dashboard_router)
+    application.include_router(notifications_router)
     return application
 
 

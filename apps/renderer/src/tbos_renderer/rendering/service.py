@@ -13,6 +13,7 @@ from tbos_renderer.content_engine.exceptions import ContentNotFoundError
 from tbos_renderer.content_engine.repository import ContentRepository
 from tbos_renderer.content_engine.schemas import PosterContent, ReelContent
 from tbos_renderer.models import Asset, ContentItem, ContentVersion
+from tbos_renderer.notifications.email import EmailNotificationService
 from tbos_renderer.rendering.poster import PosterRenderer
 from tbos_renderer.rendering.schemas import AssetResponse, RenderResultResponse
 from tbos_renderer.rendering.video import FfmpegVideoCompositor, VideoCompositorEngine
@@ -32,6 +33,7 @@ class RenderingService:
         brand_config: BrandConfig | None = None,
         voiceover_engine: VoiceoverEngine | None = None,
         video_compositor: VideoCompositorEngine | None = None,
+        email_notifier: EmailNotificationService | None = None,
     ) -> None:
         self.settings = settings
         self.repository = repository
@@ -39,6 +41,7 @@ class RenderingService:
         self.poster_renderer = PosterRenderer(self.brand_config)
         self.voiceover_engine = voiceover_engine or EdgeTtsVoiceoverEngine()
         self.video_compositor = video_compositor or FfmpegVideoCompositor(self.brand_config)
+        self.email_notifier = email_notifier or EmailNotificationService(settings)
 
     def _get_storage_dir(self, content_id: UUID, version_number: int) -> Path:
         base = (
@@ -159,6 +162,12 @@ class RenderingService:
             # Update item status to RENDERED
             item.status = "RENDERED"
             session.flush()
+
+            if self.email_notifier and self.email_notifier.is_enabled():
+                try:
+                    await self.email_notifier.send_review_alert(item, version)
+                except Exception as exc:
+                    LOGGER.warning("failed_to_send_review_alert", exc_info=exc)
 
             asset_responses = [self._to_asset_response(a) for a in created_assets]
             return RenderResultResponse(

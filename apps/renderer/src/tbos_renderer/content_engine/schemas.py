@@ -131,11 +131,21 @@ class ContentMetadata(StrictModel):
     quality_score: int = Field(default=0, ge=0, le=100)
 
 
+class PracticeQuestion(StrictModel):
+    question: str = Field(min_length=5, max_length=240)
+    options: list[str] = Field(min_length=2, max_length=4)
+    answer: str = Field(min_length=1, max_length=80)
+    explanation: str | None = Field(default=None, max_length=200)
+
+
 class PosterContent(StrictModel):
     metadata: ContentMetadata
     headline: str = Field(min_length=3, max_length=55)
     subheadline: str | None = Field(default=None, max_length=90)
+    code_snippet: str | None = Field(default=None, max_length=800)
+    code_output: str | None = Field(default=None, max_length=300)
     teaching_points: list[str] = Field(min_length=3, max_length=5)
+    practice_question: PracticeQuestion | None = Field(default=None)
     cta: str = Field(min_length=3, max_length=60)
     visual_concept: str = Field(min_length=3, max_length=500)
     captions: CaptionPack

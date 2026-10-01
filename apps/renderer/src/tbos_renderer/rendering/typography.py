@@ -18,10 +18,34 @@ FONT_CANDIDATES_BOLD = [
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
 ]
 
+FONT_CANDIDATES_MONO_REGULAR = [
+    "C:/Windows/Fonts/consola.ttf",
+    "C:/Windows/Fonts/cascadiamono.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+    "C:/Windows/Fonts/cour.ttf",
+]
 
-def get_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """Load a TrueType font with the requested size and weight, or fallback to default."""
-    candidates = FONT_CANDIDATES_BOLD if bold else FONT_CANDIDATES_REGULAR
+FONT_CANDIDATES_MONO_BOLD = [
+    "C:/Windows/Fonts/consolab.ttf",
+    "C:/Windows/Fonts/cascadiamonob.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf",
+    "C:/Windows/Fonts/courbd.ttf",
+]
+
+
+def get_font(
+    size: int,
+    bold: bool = False,
+    monospace: bool = False,
+) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """Load a TrueType font with the requested size, weight, and family, or fallback to default."""
+    if monospace:
+        candidates = FONT_CANDIDATES_MONO_BOLD if bold else FONT_CANDIDATES_MONO_REGULAR
+    else:
+        candidates = FONT_CANDIDATES_BOLD if bold else FONT_CANDIDATES_REGULAR
+
     for path_str in candidates:
         if os.path.exists(path_str):
             try:
